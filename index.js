@@ -1,140 +1,202 @@
 const express = require('express'), //Server-side web framework for Node.js
       morgan = require('morgan'), //Logging middleware
-      app = express(); // Create an instance of express() and set it to the variable app
+      app = express(),// Create an instance of express() and set it to the variable app
+      mongoose = require('mongoose'), //Schema-based package to model the application data
+      Models = require('./models.js'), // Mongoose models defined in “models.js” file
+      bodyParser = require('body-parser'),//Get the required JSON data from the request body
+      uuid = require('uuid');// Generate a unique ID
 
-//Storing my top 10 movies info in an array of object 
-let topMovies= [
-    {
-        "Title":"The Fellowship of the Ring",
-        "Year":"1991",
-        "Released":"13 Apr 1991",
-        "Runtime":"115 min",
-        "Genre":"Adventure, Fantasy",
-        "Director":"N/A",
-        "Writer":"N/A",
-        "Actors":"Georgiy Shtil, Viktor Kostetskiy, Valeriy Dyachenko",
-        "Plot":"Teleplay based on the of J.R.R. Tolkien's novel 'The Fellowship of the Ring'.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BZTQ4YTA1YmEtNWY1Yy00ODA2LWI2MGYtZGY2ZTgzYjEzMDZjXkEyXkFqcGdeQXVyNTE1MDE2MzY@._V1_SX300.jpg"
-    },
-    {
-        "Title":"The Lord of the Rings: The Two Towers",
-        "Year":"2002",
-        "Released":"18 Dec 2002",
-        "Runtime":"179 min",
-        "Genre":"Action, Adventure, Drama",
-        "Director":"Peter Jackson",
-        "Writer":"J.R.R. Tolkien, Fran Walsh, Philippa Boyens",
-        "Actors":"Elijah Wood, Ian McKellen, Viggo Mortensen",
-        "Plot":"While Frodo and Sam edge closer to Mordor with the help of the shifty Gollum, the divided fellowship makes a stand against Sauron's new ally, Saruman, and his hordes of Isengard.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BZGMxZTdjZmYtMmE2Ni00ZTdkLWI5NTgtNjlmMjBiNzU2MmI5XkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_SX300.jpg"
-    },
-    {
-        "Title":"The Lord of the Rings: The Return of the King",
-        "Year":"2003",
-        "Released":"17 Dec 2003",
-        "Runtime":"201 min",
-        "Genre":"Action, Adventure, Drama",
-        "Director":"Peter Jackson",
-        "Writer":"J.R.R. Tolkien, Fran Walsh, Philippa Boyens",
-        "Actors":"Elijah Wood, Viggo Mortensen, Ian McKellen",
-        "Plot":"Gandalf and Aragorn lead the World of Men against Sauron's army to draw his gaze from Frodo and Sam as they approach Mount Doom with the One Ring.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BNzA5ZDNlZWMtM2NhNS00NDJjLTk4NDItYTRmY2EwMWZlMTY3XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg"
-    },
-    {
-        "Title":"Iron Man",
-        "Year":"2008",
-        "Released":"02 May 2008",
-        "Runtime":"126 min",
-        "Genre":"Action, Adventure, Sci-Fi",
-        "Director":"Jon Favreau",
-        "Actors":"Robert Downey Jr., Gwyneth Paltrow, Terrence Howard",
-        "Plot":"After being held captive in an Afghan cave, billionaire engineer Tony Stark creates a unique weaponized suit of armor to fight evil.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMTczNTI2ODUwOF5BMl5BanBnXkFtZTcwMTU0NTIzMw@@._V1_SX300.jpg"
-    },
-    {
-        "Title":"Iron Man 2",
-        "Year":"2010",
-        "Released":"07 May 2010",
-        "Runtime":"2 min",
-        "Genre":"Action, Adventure, Sci-Fi",
-        "Director":"Jon Favreau",
-        "Actors":"Robert Downey Jr., Mickey Rourke, Gwyneth Paltrow",
-        "Plot":"With the world now aware of his identity as Iron Man, Tony Stark must contend with both his declining health and a vengeful mad man with ties to his father's legacy.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMTM0MDgwNjMyMl5BMl5BanBnXkFtZTcwNTg3NzAzMw@@._V1_SX300.jpg"
-    },
-    {
-        "Title":"Iron Man 3",
-        "Year":"2013",
-        "Released":"03 May 2013",
-        "Runtime":"130 min",
-        "Genre":"Action, Adventure, Sci-Fi",
-        "Director":"Shane Black",
-        "Actors":"Robert Downey Jr., Guy Pearce, Gwyneth Paltrow",
-        "Plot":"When Tony Stark's world is torn apart by a formidable terrorist called the Mandarin, he starts an odyssey of rebuilding and retribution.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMjE5MzcyNjk1M15BMl5BanBnXkFtZTcwMjQ4MjcxOQ@@._V1_SX300.jpg"
-    },
-    {
-        "Title":"Harry Potter and the Chamber of Secrets",
-        "Year":"2002",
-        "Released":"15 Nov 2002",
-        "Runtime":"161 min",
-        "Genre":"Adventure, Family, Fantasy",
-        "Director":"Chris Columbus",
-        "Writer":"J.K. Rowling, Steve Kloves",
-        "Actors":"Daniel Radcliffe, Rupert Grint, Emma Watson",
-        "Plot":"An ancient prophecy seems to be coming true when a mysterious presence begins stalking the corridors of a school of magic and leaving its victims paralyzed.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMjE0YjUzNDUtMjc5OS00MTU3LTgxMmUtODhkOThkMzdjNWI4XkEyXkFqcGdeQXVyMTA3MzQ4MTc0._V1_SX300.jpg"
-    },
-    {
-        "Title":"Harry Potter and the Chamber of Secrets",
-        "Year":"2002",
-        "Released":"15 Nov 2002",
-        "Runtime":"161 min",
-        "Genre":"Adventure, Family, Fantasy",
-        "Director":"Chris Columbus",
-        "Writer":"J.K. Rowling, Steve Kloves",
-        "Actors":"Daniel Radcliffe, Rupert Grint, Emma Watson",
-        "Plot":"An ancient prophecy seems to be coming true when a mysterious presence begins stalking the corridors of a school of magic and leaving its victims paralyzed.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMjE0YjUzNDUtMjc5OS00MTU3LTgxMmUtODhkOThkMzdjNWI4XkEyXkFqcGdeQXVyMTA3MzQ4MTc0._V1_SX300.jpg"  
-    },
-    {
-        "Title":"Harry Potter and the Prisoner of Azkaban",
-        "Year":"2004",
-        "Released":"04 Jun 2004",
-        "Runtime":"142 min",
-        "Genre":"Adventure, Family, Fantasy",
-        "Director":"Alfonso Cuarón",
-        "Writer":"J.K. Rowling, Steve Kloves",
-        "Actors":"Daniel Radcliffe, Emma Watson, Rupert Grint",
-        "Plot":"Harry Potter, Ron and Hermione return to Hogwarts School of Witchcraft and Wizardry for their third year of study, where they delve into the mystery surrounding an escaped prisoner who poses a dangerous threat to the young wizard.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BMTY4NTIwODg0N15BMl5BanBnXkFtZTcwOTc0MjEzMw@@._V1_SX300.jpg"
-    },
-    {
-        "Title":"The Devil Wears Prada",
-        "Year":"2006",
-        "Released":"30 Jun 2006",
-        "Runtime":"109 min",
-        "Genre":"Comedy, Drama",
-        "Director":"David Frankel",
-        "Writer":"Aline Brosh McKenna, Lauren Weisberger",
-        "Actors":"Anne Hathaway, Meryl Streep, Adrian Grenier",
-        "Plot":"A smart but sensible new graduate lands a job as an assistant to Miranda Priestly, the demanding editor-in-chief of a high fashion magazine.",
-        "Poster":"https://m.media-amazon.com/images/M/MV5BZjQ3ZTIzOTItMGNjNC00MWRmLWJlMGEtMjJmMDM5ZDIzZGM3XkEyXkFqcGdeQXVyMTkzODUwNzk@._V1_SX300.jpg"
-    }    
-]
+
+const Movies = Models.Movie; // Movie model
+const Users = Models.User; // User model
+
+// Connect Mongoose to the local myFlixDB
+mongoose.connect('mongodb://localhost:27017/myFlixDB', { useNewUrlParser: true, useUnifiedTopology: true });
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Invoke Morgan middleware function
 app.use(morgan('common'));
+
+
+
+/*************  Endpoints list *************/
 
 //Root endpoint
 app.get('/', (req, res) => {
   res.send('Welcome to my Movie App!');
 });
 
-//Get movies endpoint
+// Get all movies
 app.get('/movies', (req, res) => {
-  res.json(topMovies);
+  Movies.find()
+    .then((movies) => {
+      res.status(201).json(movies);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
 });
+
+
+// Get a movie by title
+app.get('/movies/:Title', (req, res) => {
+  Movies.findOne({ Title: req.params.Title })
+    .then((movie) => {
+      res.json(movie);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Get data about a genre
+app.get('/genres/:Name', (req, res) => {
+  Movies.findOne({ 'Genre.Name': req.params.Name })
+    .then((movie) => {
+      res.json(movie.Genre);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Data about a director
+app.get('/directors/:Name', (req, res) => {
+  Movies.findOne({ 'Director.Name': req.params.Name })
+    .then((movie) => {
+      res.json(movie.Director);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Add a new user
+app.post('/users', (req, res) => {
+  Users.findOne({ Username: req.body.Username })
+    .then((user) => {
+      if (user) {
+        return res.status(400).send(req.body.Username + 'already exists');
+      } else {
+        Users
+        .create({
+            Username: req.body.Username,
+            Password: req.body.Password,
+            Email: req.body.Email,
+            Birthday: req.body.Birthday
+          })
+          .then((user) =>{res.status(201).json(user) })
+        .catch((error) => {
+          console.error(error);
+          res.status(500).send('Error: ' + error);
+        })
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send('Error: ' + error);
+    });
+});
+
+// Get all users
+app.get('/users', (req, res) => {
+  Users.find()
+    .then((users) => {
+      res.status(201).json(users);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Get a user by username
+app.get('/users/:Username', (req, res) => {
+  Users.findOne({ Username: req.params.Username })
+    .then((user) => {
+      res.json(user);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Update a user's info, by username
+app.put('/users/:Username', (req, res) => {
+  Users.findOneAndUpdate({ Username: req.params.Username }, { $set:
+    {
+      Username: req.body.Username,
+      Password: req.body.Password,
+      Email: req.body.Email,
+      Birthday: req.body.Birthday
+    }
+  },
+  { new: true }, // This line makes sure that the updated document is returned
+  (err, updatedUser) => {
+    if(err) {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    } else {
+      res.json(updatedUser);
+    }
+  });
+});
+
+// Delete a user by username
+app.delete('/users/:Username', (req, res) => {
+  Users.findOneAndRemove({ Username: req.params.Username })
+    .then((user) => {
+      if (!user) {
+        res.status(400).send(req.params.Username + ' was not found');
+      } else {
+        res.status(200).send(req.params.Username + ' was deleted.');
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    });
+});
+
+// Add a movie to a user's list of favorites
+app.post('/users/:Username/movies/:MovieID', (req, res) => {
+  Users.findOneAndUpdate({ Username: req.params.Username }, {
+     $push: { FavoriteMovies: req.params.MovieID }
+   },
+   { new: true }, // This line makes sure that the updated document is returned
+  (err, updatedUser) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    } else {
+      res.json(updatedUser);
+    }
+  });
+});
+
+ // Remove a movie from user's list of favorites
+app.delete('/users/:Username/movies/:MovieID', (req, res) => {
+  Users.findOneAndUpdate({ Username: req.params.Username }, {
+     $pull: { FavoriteMovies: req.params.MovieID }
+   },
+   { new: true }, // This line makes sure that the updated document is returned
+  (err, updatedUser) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('Error: ' + err);
+    } else {
+      res.json(updatedUser);
+    }
+  });
+});
+
 
 //Route all requests for static files to their corresponding files within the static folder
 app.use(express.static('public'));
